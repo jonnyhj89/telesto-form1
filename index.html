@@ -2,45 +2,25 @@
 <html lang="cs">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Odepsání materiálu – Telesto</title>
-  <script type="module">
-    import {
-      BrowserMultiFormatReader
-    } from "https://cdn.jsdelivr.net/npm/@zxing/browser@0.0.10/+esm";
-
-    window.decodeFromImage = async (file) => {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const img = new Image();
-        img.src = reader.result;
-
-        img.onload = async () => {
-          const codeReader = new BrowserMultiFormatReader();
-          try {
-            const result = await codeReader.decodeFromImageElement(img);
-            document.getElementById("barcode").value = result.text;
-          } catch (err) {
-            alert("❌ Kód se nepodařilo rozpoznat.");
-          }
-        };
-      };
-      reader.readAsDataURL(file);
-    };
-  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Odepsání materiálu 1 – Telesto</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 1em; }
     input, select, button { margin-top: 0.5em; padding: 0.5em; width: 100%; max-width: 400px; }
+    #scanner-container { max-width: 400px; margin: 1em 0; }
+    #barcode { background: #f2f2f2; }
   </style>
 </head>
 <body>
   <h2>Odepsání materiálu</h2>
 
   <label for="barcode">Naskenovaný kód</label>
-  <input type="text" id="barcode" placeholder="Nejprve naskenuj kód..." readonly>
+  <input type="text" id="barcode" placeholder="Naskenuj čárový kód..." readonly>
 
-  <input type="file" accept="image/*" capture="environment" onchange="decodeFromImage(this.files[0])">
-  
+  <button onclick="startScanner()">📷 Skenovat kód</button>
+  <div id="scanner-container"></div>
+
   <label for="location">Lokalita / dům</label>
   <select id="location">
     <option>Dům Brno – Masná 12</option>
@@ -54,10 +34,46 @@
   <button onclick="submitForm()">✅ Odepsat ze skladu</button>
 
   <script>
+    function startScanner() {
+      const container = document.getElementById("scanner-container");
+      container.innerHTML = ""; // vyčistí starý výstup
+
+      Quagga.init({
+        inputStream: {
+          type: "LiveStream",
+          constraints: {
+            facingMode: "environment"
+          },
+          target: container
+        },
+        decoder: {
+          readers: ["ean_reader"] // EAN-13
+        }
+      }, function (err) {
+        if (err) {
+          alert("Chyba při spouštění kamery: " + err.message);
+          return;
+        }
+        Quagga.start();
+      });
+
+      Quagga.onDetected(function(result) {
+        const code = result.codeResult.code;
+        document.getElementById("barcode").value = code;
+        Quagga.stop();
+        container.innerHTML = ""; // schová kameru
+      });
+    }
+
     async function submitForm() {
       const barcode = document.getElementById("barcode").value;
       const location = document.getElementById("location").value;
       const quantity = parseInt(document.getElementById("quantity").value, 10);
+
+      if (!barcode) {
+        alert("⚠️ Nejprve naskenuj kód.");
+        return;
+      }
 
       const payload = {
         product: barcode,
@@ -72,7 +88,7 @@
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": "c10cdc4bf4fd059f2d5b2ce2db5565ee" // ← SEM VLOŽ SVŮJ KLÍČ
+            "Authorization": "c10cdc4bf4fd059f2d5b2ce2db5565ee" // tvůj API token
           },
           body: JSON.stringify(payload)
         });
@@ -86,4 +102,3 @@
   </script>
 </body>
 </html>
-
