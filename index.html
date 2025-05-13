@@ -34,60 +34,54 @@
 
   <script>
 async function startScanner() {
-  const reader = document.getElementById("reader");
-  reader.style.display = "block";
-  
-  try {
+    const reader = document.getElementById("reader");
+    reader.style.display = "block";
     const html5QrCode = new Html5Qrcode("reader");
-    const devices = await Html5Qrcode.getCameras();
-    if (devices && devices.length) {
-      const cameraId = devices[0].id;
-      await html5QrCode.start(
-        cameraId,
-        { fps: 10, qrbox: 250 },
-        qrCodeMessage => {
-          document.getElementById("barcode").value = qrCodeMessage;
-          html5QrCode.stop();
-          reader.style.display = "none";
-        },
-        errorMessage => {
-          console.warn("Chyba při čtení kódu", errorMessage);
-        }
-      );
-    } else {
-      alert("Žádná kamera nebyla nalezena.");
-    }
-  } catch (err) {
-    alert("Nepodařilo se spustit skener: " + err);
-    reader.style.display = "none";
-  }
-}
 
-    async function startScanner() {
-      const reader = document.getElementById("reader");
-      reader.style.display = "block";
-      const html5QrCode = new Html5Qrcode("reader");
-
-      await html5QrCode.start(
+    await html5QrCode.start(
         { facingMode: "environment" },
         { fps: 10, qrbox: 250 },
         async qrCodeMessage => {
-          document.getElementById("barcode").value = qrCodeMessage;
-          await html5QrCode.stop();
-          reader.style.display = "none";
+            document.getElementById("barcode").value = qrCodeMessage;
+            await html5QrCode.stop();
+            reader.style.display = "none";
         },
         errorMessage => {
-          console.warn("Chyba při čtení kódu:", errorMessage);
+            console.warn("Chyba při čtení kódu:", errorMessage);
         }
-      );
-    }
+    );
+}
 
-    function submitForm() {
-      const barcode = document.getElementById("barcode").value;
-      const location = document.getElementById("location").value;
-      const quantity = document.getElementById("quantity").value;
-      alert(`Odesílám: ${barcode}, ${location}, ${quantity} ks`);
+async function submitForm() {
+    const barcode = document.getElementById("barcode").value;
+    const location = document.getElementById("location").value;
+    const quantity = parseInt(document.getElementById("quantity").value, 10);
+
+    const payload = {
+        product: barcode,
+        quantity: quantity,
+        location: location,
+        direction: "out",
+        note: "Odepsáno z formuláře"
+    };
+
+    try {
+        const response = await fetch("https://www.telesto.app/v2/transactions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "c10cdc4bf4fd059f2d5b2ce2db5565ee"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        alert("✅ Hotovo: " + JSON.stringify(data));
+    } catch (err) {
+        alert("❌ Chyba při odesílání: " + err.message);
     }
-  </script>
+}
+</script>
+
 </body>
 </html>
