@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Odepsání materiálu 1 – Telesto</title>
+  <title>Odepsání materiáluu – Telesto</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 1em; }
@@ -13,7 +13,7 @@
   </style>
 </head>
 <body>
-  <h2>Odepsání materiálu</h2>
+  <h2>Odepsání materiálu (EAN čárový kód)</h2>
 
   <label for="barcode">Naskenovaný kód</label>
   <input type="text" id="barcode" placeholder="Naskenuj čárový kód..." readonly>
@@ -36,19 +36,18 @@
   <script>
     function startScanner() {
       const container = document.getElementById("scanner-container");
-      container.innerHTML = ""; // vyčistí starý výstup
+      container.innerHTML = "";
 
       Quagga.init({
         inputStream: {
           type: "LiveStream",
-          constraints: {
-            facingMode: "environment"
-          },
+          constraints: { facingMode: "environment" },
           target: container
         },
         decoder: {
-          readers: ["ean_reader"] // EAN-13
-        }
+          readers: ["ean_reader", "ean_13_reader"]
+        },
+        locate: true
       }, function (err) {
         if (err) {
           alert("Chyba při spouštění kamery: " + err.message);
@@ -61,7 +60,7 @@
         const code = result.codeResult.code;
         document.getElementById("barcode").value = code;
         Quagga.stop();
-        container.innerHTML = ""; // schová kameru
+        container.innerHTML = "";
       });
     }
 
@@ -88,7 +87,7 @@
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": "c10cdc4bf4fd059f2d5b2ce2db5565ee" // tvůj API token
+            "Authorization": "c10cdc4bf4fd059f2d5b2ce2db5565ee"
           },
           body: JSON.stringify(payload)
         });
