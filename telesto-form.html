@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Odepsání materiálu – Telesto</title>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <style>
+    body { font-family: sans-serif; padding: 1em; }
+    input, select, button { margin-top: 0.5em; padding: 0.5em; width: 100%; max-width: 400px; }
+    #reader { width: 100%; max-width: 400px; margin-top: 1em; }
+  </style>
+</head>
+<body>
+  <h2>Odepsání materiálu</h2>
+
+  <label for="barcode">Naskenovaný kód</label>
+  <input type="text" id="barcode" placeholder="Nejprve naskenuj kód..." readonly>
+
+  <button onclick="startScanner()">📷 Skenovat kód</button>
+  <div id="reader" style="display: none;"></div>
+
+  <label for="location">Lokalita / dům</label>
+  <select id="location">
+    <option>Dům Brno – Masná 12</option>
+    <option>Dům Brno – Zderadova</option>
+    <option>Dům Brno – Vídeňská</option>
+  </select>
+
+  <label for="quantity">Počet ks</label>
+  <input type="number" id="quantity" min="1" value="1">
+
+  <button onclick="submitForm()">✅ Odepsat ze skladu</button>
+
+  <script>
+async function startScanner() {
+    const reader = document.getElementById("reader");
+    reader.style.display = "block";
+    const html5QrCode = new Html5Qrcode("reader");
+
+    await html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        async qrCodeMessage => {
+            document.getElementById("barcode").value = qrCodeMessage;
+            await html5QrCode.stop();
+            reader.style.display = "none";
+        },
+        errorMessage => {
+            console.warn("Chyba při čtení kódu:", errorMessage);
+        }
+    );
+}
+
+async function submitForm() {
+    const barcode = document.getElementById("barcode").value;
+    const location = document.getElementById("location").value;
+    const quantity = parseInt(document.getElementById("quantity").value, 10);
+
+    const payload = {
+        product: barcode,
+        quantity: quantity,
+        location: location,
+        direction: "out",
+        note: "Odepsáno z formuláře"
+    };
+
+    try {
+        const response = await fetch("https://www.telesto.app/v2/transactions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "c10cdc4bf4fd059f2d5b2ce2db5565ee"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        alert("✅ Hotovo: " + JSON.stringify(data));
+    } catch (err) {
+        alert("❌ Chyba při odesílání: " + err.message);
+    }
+}
+</script>
+
+</body>
+</html>
